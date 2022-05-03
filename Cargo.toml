@@ -2,6 +2,14 @@
 name = "libqoi"
 version = "0.1.0"
 edition = "2021"
+readme = "README.md"
+description = "A basic QOI encoder/decoder in rust"
+homepage = "https://github.com/10maurycy10/libqoi/"
+repository = "https://github.com/10maurycy10/libqoi.git"
+license = "LGPL-2.0-or-later"
+keywords = ["image", "graphics", "qoi", "encoder", "decoder"]
+categories = ["multimedia::images", "compression"]
+
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
