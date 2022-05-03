@@ -1,5 +1,7 @@
 # libqoi
 
+[![crates.io badge](https://img.shields.io/crates/v/libqoi)](https://crates.io/crates/libqoi) [![docs.rs badge](https://img.shields.io/docsrs/libqoi)](https://docs.rs/libqoi/latest/libqoi/)
+
 A basic rust [QOI](https://qoiformat.org/) decoder/encoder.
 
 ## Why QOI
