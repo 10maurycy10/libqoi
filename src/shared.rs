@@ -10,7 +10,7 @@ pub struct Header {
     /// 0 = SRGB
     /// 1 = SRGB - linear alpha
     /// 3 = linear all
-    pub color_space: u8
+    pub color_space: u8,
 }
 
 pub fn encode_header(head: Header, dst: &mut Vec<u8>) {
@@ -29,7 +29,7 @@ pub fn encode_header(head: Header, dst: &mut Vec<u8>) {
     dst.push(h[1]);
     dst.push(h[2]);
     dst.push(h[3]);
-    
+
     dst.push(head.channel_count);
     dst.push(head.color_space);
 }
@@ -41,25 +41,28 @@ pub fn read_header<'a>(data: &'a [u8]) -> Option<(Header, &'a [u8])> {
     let channel_count = data.get(12)?;
     let color_space = data.get(13)?;
     if magic != b"qoif" {
-        return None
+        return None;
     } else {
-        Some((Header {
-            hight: u32::from_be_bytes([hight[0], hight[1], hight[2], hight[3]]),
-            width: u32::from_be_bytes([width[0], width[1], width[2], width[3]]),
-            channel_count: *channel_count,
-            color_space: *color_space
-        }, &data[14..]))
+        Some((
+            Header {
+                hight: u32::from_be_bytes([hight[0], hight[1], hight[2], hight[3]]),
+                width: u32::from_be_bytes([width[0], width[1], width[2], width[3]]),
+                channel_count: *channel_count,
+                color_space: *color_space,
+            },
+            &data[14..],
+        ))
     }
 }
 
-pub fn encode_RGB(r: u8, g: u8, b: u8, dst: &mut Vec<u8>) {
+pub fn encode_rgb(r: u8, g: u8, b: u8, dst: &mut Vec<u8>) {
     dst.push(0xfe);
     dst.push(r);
     dst.push(g);
     dst.push(b);
 }
 
-pub fn encode_RGBA(r: u8, g: u8, b: u8, a: u8, dst: &mut Vec<u8>) {
+pub fn encode_rgba(r: u8, g: u8, b: u8, a: u8, dst: &mut Vec<u8>) {
     dst.push(0xff);
     dst.push(r);
     dst.push(g);
@@ -68,23 +71,18 @@ pub fn encode_RGBA(r: u8, g: u8, b: u8, a: u8, dst: &mut Vec<u8>) {
 }
 
 // NOTICE WONT CHECK MAGIC!!
-pub fn decode_RGB<'a>(data: &'a [u8]) -> Option<(u8, u8, u8, &'a [u8])> {
-    Some((
-        *data.get(1)?,
-        *data.get(2)?,
-        *data.get(3)?,
-        data.get(4..)?
-    ))
+pub fn decode_rgb<'a>(data: &'a [u8]) -> Option<(u8, u8, u8, &'a [u8])> {
+    Some((*data.get(1)?, *data.get(2)?, *data.get(3)?, data.get(4..)?))
 }
 
 // NOTICE WONT CHECK MAGIC!!
-pub fn decode_RGBA<'a>(data: &'a [u8]) -> Option<(u8, u8, u8, u8, &'a [u8])> {
+pub fn decode_rgba<'a>(data: &'a [u8]) -> Option<(u8, u8, u8, u8, &'a [u8])> {
     Some((
         *data.get(1)?,
         *data.get(2)?,
         *data.get(3)?,
         *data.get(4)?,
-        data.get(5..)?
+        data.get(5..)?,
     ))
 }
 
@@ -99,18 +97,12 @@ pub fn encode_run(idx: u8, dst: &mut Vec<u8>) {
 
 // NOTICE WONT CHECK MAGIC!!
 pub fn decode_index<'a>(data: &'a [u8]) -> Option<(u8, &'a [u8])> {
-    Some((
-        *data.get(0)? & 0b0011_1111,
-        data.get(1..)?
-    ))
+    Some((*data.get(0)? & 0b0011_1111, data.get(1..)?))
 }
 
 // NOTICE WONT CHECK MAGIC!!
 pub fn decode_run<'a>(data: &'a [u8]) -> Option<(u8, &'a [u8])> {
-    Some((
-        (*data.get(0)? & 0b0011_1111),
-        data.get(1..)?
-    ))
+    Some(((*data.get(0)? & 0b0011_1111), data.get(1..)?))
 }
 
 pub fn encode_diff(dr: i8, dg: i8, db: i8, dst: &mut Vec<u8>) {
@@ -126,24 +118,19 @@ pub fn decode_diff<'a>(data: &'a [u8]) -> Option<(i8, i8, i8, &'a [u8])> {
     let dr = (byte & 0b0011_0000) >> 4;
     let dg = (byte & 0b0000_1100) >> 2;
     let db = (byte & 0b0000_0011) >> 0;
-    Some((
-        dr as i8 - 2,
-        dg as i8 - 2,
-        db as i8 - 2,
-        data.get(1..)?
-    ))
+    Some((dr as i8 - 2, dg as i8 - 2, db as i8 - 2, data.get(1..)?))
 }
 
 // NOTICE WONT CHECK MAGIC!!
 pub fn decode_diffluma<'a>(data: &'a [u8]) -> Option<(i8, i8, i8, &'a [u8])> {
-    let dg   = (data.get(0)? & 0b0011_1111);
+    let dg = data.get(0)? & 0b0011_1111;
     let drdg = (data.get(1)? & 0b1111_0000) >> 4;
-    let dddg = (data.get(1)? & 0b0000_1111);
+    let dddg = data.get(1)? & 0b0000_1111;
     Some((
         dg as i8 - 32,
         drdg as i8 - 8,
         dddg as i8 - 8,
-        data.get(2..)?
+        data.get(2..)?,
     ))
 }
 
@@ -152,14 +139,20 @@ pub fn encode_diffluma(drdg: i8, dg: i8, dbdg: i8, dst: &mut Vec<u8>) {
     dst.push(((drdg + 8) << 4) as u8 | (dbdg + 8) as u8);
 }
 
-
 // convert a color into a number from 0..64
-pub fn color_hash(r:u8, g: u8, b: u8, a: u8) -> usize {
-    (r as usize * 3 + g  as usize * 5 + b  as usize * 7 + a  as usize * 11) % 64
+pub fn color_hash(r: u8, g: u8, b: u8, a: u8) -> usize {
+    (r as usize * 3 + g as usize * 5 + b as usize * 7 + a as usize * 11) % 64
 }
 
-pub fn add_hash_and_last(r: u8,g: u8,b: u8, a: u8, array: &mut [(u8,u8,u8,u8); 64], last:&mut (u8,u8,u8,u8)) {
-    let hash = color_hash(r,g,b,a);
-    array[hash] = (r,g,b,a);
-    *last = (r,g,b,a);
+pub fn add_hash_and_last(
+    r: u8,
+    g: u8,
+    b: u8,
+    a: u8,
+    array: &mut [(u8, u8, u8, u8); 64],
+    last: &mut (u8, u8, u8, u8),
+) {
+    let hash = color_hash(r, g, b, a);
+    array[hash] = (r, g, b, a);
+    *last = (r, g, b, a);
 }
