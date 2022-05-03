@@ -44,6 +44,11 @@ fn can_use_luma(a: (u8, u8, u8, u8), b: (u8, u8, u8, u8)) -> bool {
     dg >= -32 && dg <= 31 && drdg >= -8 && drdg <= 7 && dbdg >= -8 && dbdg <= 7
 }
 
+
+/// Compresses raw image data to QOI.
+/// img_data :  Row major RGBA image data
+/// hight, width: Image size
+/// channel_count: 3 = RBG, 4 = RBGA
 pub fn encode_qoi(
     img_data: &[u8],
     hight: usize,
@@ -129,14 +134,14 @@ pub fn encode_qoi(
         add_hash_and_last(cpxl.0, cpxl.1, cpxl.2, cpxl.3, &mut colorhashes, &mut last);
     }
     // Padding to help detect truncation
-    buf.push(0x00)
-    buf.push(0x00)
-    buf.push(0x00)
-    buf.push(0x00)
-    buf.push(0x00)
-    buf.push(0x00)
-    buf.push(0x00)
-    buf.push(0x01)
+    buf.push(0x00);
+    buf.push(0x00);
+    buf.push(0x00);
+    buf.push(0x00);
+    buf.push(0x00);
+    buf.push(0x00);
+    buf.push(0x00);
+    buf.push(0x01);
     
     Some(buf)
 }

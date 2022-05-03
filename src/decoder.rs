@@ -1,6 +1,6 @@
 use crate::shared::*;
 
-/// NOTE returns RGBA data even for an RGB imadge
+/// Decodes an QOI image to raw RGBA data row-major, returns metadata in a Header struct
 pub fn decode_qoi<'a>(data: &'a [u8]) -> Option<(Header, Vec<u8>, &'a [u8])> {
     let (head, mut data) = read_header(data)?;
     let decoded_size = (head.hight * head.width * 4) as usize;

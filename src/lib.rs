@@ -5,6 +5,7 @@ mod shared;
 pub use decoder::decode_qoi;
 pub use encoder::encode_qoi;
 pub use shared::Header;
+pub use shared::read_header;
 
 #[cfg(test)]
 mod tests {

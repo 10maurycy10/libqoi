@@ -1,3 +1,4 @@
+/// A QOI header, storing all the metadata
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub struct Header {
     /// big endian
@@ -34,6 +35,7 @@ pub fn encode_header(head: Header, dst: &mut Vec<u8>) {
     dst.push(head.color_space);
 }
 
+/// Reads a header from data, can be used to check image size before decoding.
 pub fn read_header<'a>(data: &'a [u8]) -> Option<(Header, &'a [u8])> {
     let magic = data.get(0..4)?;
     let width = data.get(4..8)?;
