@@ -128,5 +128,15 @@ pub fn encode_qoi(
         }
         add_hash_and_last(cpxl.0, cpxl.1, cpxl.2, cpxl.3, &mut colorhashes, &mut last);
     }
+    // Padding to help detect truncation
+    buf.push(0x00)
+    buf.push(0x00)
+    buf.push(0x00)
+    buf.push(0x00)
+    buf.push(0x00)
+    buf.push(0x00)
+    buf.push(0x00)
+    buf.push(0x01)
+    
     Some(buf)
 }
