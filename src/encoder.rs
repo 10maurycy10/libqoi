@@ -12,13 +12,14 @@ use crate::*;
 // 29689 - run len + index + RBG + RBGA
 // 26098 - run len + small diff + index + RGB + RBGA
 // 22356 - run len + small diff + diff luma + index + RGB + RBGA
+// 21855 - run len + small wapping diff + diff wapping luma + index + RGB + RBGA
 
-// TODO diffs are wraping
+#[inline]
 fn can_use_small_dif(a: (u8,u8,u8,u8), b: (u8,u8,u8,u8)) -> bool {
-    let dr = a.0 as isize - b.0 as isize;
-    let dg = a.1 as isize - b.1 as isize;
-    let db = a.2 as isize - b.2 as isize;
-    let da = a.3 as isize - b.3 as isize;
+    let dr = (a.0 as i8).wrapping_sub(b.0 as i8);
+    let dg = (a.1 as i8).wrapping_sub(b.1 as i8);
+    let db = (a.2 as i8).wrapping_sub(b.2 as i8);
+    let da = (a.3 as i8).wrapping_sub(b.3 as i8);
 
     if da != 0 {
         return false;
@@ -29,7 +30,7 @@ fn can_use_small_dif(a: (u8,u8,u8,u8), b: (u8,u8,u8,u8)) -> bool {
     db >= -2 && db <= 1
 }
 
-// TODO diffs are wraping
+#[inline]
 fn can_use_luma(a: (u8,u8,u8,u8), b: (u8,u8,u8,u8)) -> bool {
     let dr = a.0 as isize - b.0 as isize;
     let dg = a.1 as isize - b.1 as isize;
@@ -83,7 +84,7 @@ pub fn encode_qoi(img_data: &[u8], hight: usize, width: usize, channel_count: u8
                     break
                 }
             }
-            println!("runlen {}", runlen - 1);
+//             println!("runlen {}", runlen - 1);
             encode_run(runlen as u8 - 1, &mut buf);
             // we dont need to update the hashes or last pxl for runs
         // TODO this is a bit slow
@@ -92,18 +93,18 @@ pub fn encode_qoi(img_data: &[u8], hight: usize, width: usize, channel_count: u8
             rest = &rest[4..];
             last = cpxl;
         } else  if can_use_small_dif(cpxl, last) {
-            let dr = cpxl.0 as isize - last.0 as isize;
-            let dg = cpxl.1 as isize - last.1 as isize;
-            let db = cpxl.2 as isize - last.2 as isize;
-            println!("diff {} {} {}",dr, dg, db);
+            let dr = (cpxl.0 as i8).wrapping_sub(last.0 as i8);
+            let dg = (cpxl.1 as i8).wrapping_sub(last.1 as i8);
+            let db = (cpxl.2 as i8).wrapping_sub(last.2 as i8);
+//             println!("diff {} {} {}",dr, dg, db);
             encode_diff(dr as i8, dg as i8, db as i8 , &mut buf);
             rest = &rest[4..];
         } else  if can_use_luma(cpxl, last) {
-            let dr = cpxl.0 as isize - last.0 as isize;
-            let dg = cpxl.1 as isize - last.1 as isize;
-            let db = cpxl.2 as isize - last.2 as isize;
-            let drdg = dr - dg;
-            let dbdg = db - dg;
+            let dr = (cpxl.0 as i8).wrapping_sub(last.0 as i8);
+            let dg = (cpxl.1 as i8).wrapping_sub(last.1 as i8);
+            let db = (cpxl.2 as i8).wrapping_sub(last.2 as i8);
+            let drdg = dr.wrapping_sub(dg);
+            let dbdg = db.wrapping_sub(dg);
             encode_diffluma(drdg as i8,dg as i8,dbdg as i8, &mut buf);
             rest = &rest[4..];
        // if the last alpha is the same as the old one, use RGB
@@ -119,7 +120,7 @@ pub fn encode_qoi(img_data: &[u8], hight: usize, width: usize, channel_count: u8
             let g = rest[1];
             let b = rest[2];
             let a = rest[3];
-            println!("{:?}", (r,g,b,a));
+//             println!("{:?}", (r,g,b,a));
             encode_RGBA(r,g,b,a, &mut buf);
             // RGBA encodes one pixel
             rest = &rest[4..];
