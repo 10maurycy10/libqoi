@@ -109,7 +109,6 @@ impl Part {
                 dst.push(*b);
             }
             Part::SmallDiff(dr, dg, db) => {
-                println!("enc {} {} {} ", dr, dg, db);
                 dst.push(0b0100_0000 | (((dr + 2) as u8) << 4) | (((dg + 2) as u8) << 2) | (db + 2) as u8)
             }
             Part::LumaDiff(drdg, dg, dbdg) => {
@@ -117,7 +116,6 @@ impl Part {
                 dst.push((((drdg+8) as u8) << 4) | (dbdg+8) as u8)
             }
             Part::Run(len) => {
-                println!("run {}", len);
                 dst.push((len - 1) | 0b1100_0000)
             }
             Part::Idx(i) => {
@@ -174,7 +172,6 @@ impl Part {
                 Part::Run((first & 0b11_1111) + 1)
             ))
         } else {
-            println!("invalid");
             None
         }
     }
