@@ -4,8 +4,9 @@ mod shared;
 
 pub use decoder::decode_qoi;
 pub use encoder::encode_qoi;
-pub use shared::Header;
 pub use shared::read_header;
+pub use shared::Header;
+pub use shared::Part;
 
 #[cfg(test)]
 mod tests {

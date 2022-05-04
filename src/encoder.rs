@@ -44,7 +44,6 @@ fn can_use_luma(a: (u8, u8, u8, u8), b: (u8, u8, u8, u8)) -> bool {
     dg >= -32 && dg <= 31 && drdg >= -8 && drdg <= 7 && dbdg >= -8 && dbdg <= 7
 }
 
-
 /// Compresses raw image data to QOI.
 /// img_data :  Row major RGBA image data
 /// hight, width: Image size
@@ -90,19 +89,20 @@ pub fn encode_qoi(
                     break;
                 }
             }
-            encode_run(runlen as u8 - 1, &mut buf);
+            Part::Run(runlen as u8).encode(&mut buf);
             // we dont need to update the hashes or last pxl for runs
-            // TODO this is a bit slow
+            // TODO this is a bit slow (recomputes hashes)
         } else if colorhashes[color_hash(cpxl.0, cpxl.1, cpxl.2, cpxl.3)] == cpxl {
-            encode_index(color_hash(cpxl.0, cpxl.1, cpxl.2, cpxl.3) as u8, &mut buf);
+            Part::Idx(color_hash(cpxl.0, cpxl.1, cpxl.2, cpxl.3) as u8).encode(&mut buf);
             rest = &rest[4..];
             last = cpxl;
+        // todo
         } else if can_use_small_dif(cpxl, last) {
             let dr = (cpxl.0 as i8).wrapping_sub(last.0 as i8);
             let dg = (cpxl.1 as i8).wrapping_sub(last.1 as i8);
             let db = (cpxl.2 as i8).wrapping_sub(last.2 as i8);
             //             println!("diff {} {} {}",dr, dg, db);
-            encode_diff(dr as i8, dg as i8, db as i8, &mut buf);
+            Part::SmallDiff(dr as i8, dg as i8, db as i8).encode(&mut buf);
             rest = &rest[4..];
         } else if can_use_luma(cpxl, last) {
             let dr = (cpxl.0 as i8).wrapping_sub(last.0 as i8);
@@ -110,7 +110,7 @@ pub fn encode_qoi(
             let db = (cpxl.2 as i8).wrapping_sub(last.2 as i8);
             let drdg = dr.wrapping_sub(dg);
             let dbdg = db.wrapping_sub(dg);
-            encode_diffluma(drdg as i8, dg as i8, dbdg as i8, &mut buf);
+            Part::LumaDiff(drdg as i8, dg as i8, dbdg as i8).encode(&mut buf);
             rest = &rest[4..];
         // if the last alpha is the same as the old one, use RGB
         } else if cpxl.3 == last.3 {
@@ -118,7 +118,7 @@ pub fn encode_qoi(
             let g = rest[1];
             let b = rest[2];
             // RGB encodes one pixel
-            encode_rgb(r, g, b, &mut buf);
+            Part::RGB(r, g, b).encode(&mut buf);
             rest = &rest[4..];
         } else {
             // Otherwize fallback to RGBA
@@ -127,7 +127,7 @@ pub fn encode_qoi(
             let b = rest[2];
             let a = rest[3];
             //             println!("{:?}", (r,g,b,a));
-            encode_rgba(r, g, b, a, &mut buf);
+            Part::RGBA(r, g, b, a).encode(&mut buf);
             // RGBA encodes one pixel
             rest = &rest[4..];
         }
@@ -142,6 +142,6 @@ pub fn encode_qoi(
     buf.push(0x00);
     buf.push(0x00);
     buf.push(0x01);
-    
+
     Some(buf)
 }

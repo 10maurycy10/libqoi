@@ -57,95 +57,13 @@ pub fn read_header<'a>(data: &'a [u8]) -> Option<(Header, &'a [u8])> {
     }
 }
 
-pub fn encode_rgb(r: u8, g: u8, b: u8, dst: &mut Vec<u8>) {
-    dst.push(0xfe);
-    dst.push(r);
-    dst.push(g);
-    dst.push(b);
-}
-
-pub fn encode_rgba(r: u8, g: u8, b: u8, a: u8, dst: &mut Vec<u8>) {
-    dst.push(0xff);
-    dst.push(r);
-    dst.push(g);
-    dst.push(b);
-    dst.push(a);
-}
-
-// NOTICE WONT CHECK MAGIC!!
-pub fn decode_rgb<'a>(data: &'a [u8]) -> Option<(u8, u8, u8, &'a [u8])> {
-    Some((*data.get(1)?, *data.get(2)?, *data.get(3)?, data.get(4..)?))
-}
-
-// NOTICE WONT CHECK MAGIC!!
-pub fn decode_rgba<'a>(data: &'a [u8]) -> Option<(u8, u8, u8, u8, &'a [u8])> {
-    Some((
-        *data.get(1)?,
-        *data.get(2)?,
-        *data.get(3)?,
-        *data.get(4)?,
-        data.get(5..)?,
-    ))
-}
-
-pub fn encode_index(idx: u8, dst: &mut Vec<u8>) {
-    dst.push(0b0011_1111 & idx);
-}
-
-// NOTE not biased
-pub fn encode_run(idx: u8, dst: &mut Vec<u8>) {
-    dst.push((0b0011_1111 & (idx)) | 0b1100_0000);
-}
-
-// NOTICE WONT CHECK MAGIC!!
-pub fn decode_index<'a>(data: &'a [u8]) -> Option<(u8, &'a [u8])> {
-    Some((*data.get(0)? & 0b0011_1111, data.get(1..)?))
-}
-
-// NOTICE WONT CHECK MAGIC!!
-pub fn decode_run<'a>(data: &'a [u8]) -> Option<(u8, &'a [u8])> {
-    Some(((*data.get(0)? & 0b0011_1111), data.get(1..)?))
-}
-
-pub fn encode_diff(dr: i8, dg: i8, db: i8, dst: &mut Vec<u8>) {
-    let sr = (dr + 2) as u8 & 0b000_0011;
-    let sg = (dg + 2) as u8 & 0b000_0011;
-    let sb = (db + 2) as u8 & 0b000_0011;
-    dst.push(0b0100_0000 | (sr << 4) | (sg << 2) | sb)
-}
-
-// NOTICE WONT CHECK MAGIC!!
-pub fn decode_diff<'a>(data: &'a [u8]) -> Option<(i8, i8, i8, &'a [u8])> {
-    let byte = data.get(0)?;
-    let dr = (byte & 0b0011_0000) >> 4;
-    let dg = (byte & 0b0000_1100) >> 2;
-    let db = (byte & 0b0000_0011) >> 0;
-    Some((dr as i8 - 2, dg as i8 - 2, db as i8 - 2, data.get(1..)?))
-}
-
-// NOTICE WONT CHECK MAGIC!!
-pub fn decode_diffluma<'a>(data: &'a [u8]) -> Option<(i8, i8, i8, &'a [u8])> {
-    let dg = data.get(0)? & 0b0011_1111;
-    let drdg = (data.get(1)? & 0b1111_0000) >> 4;
-    let dddg = data.get(1)? & 0b0000_1111;
-    Some((
-        dg as i8 - 32,
-        drdg as i8 - 8,
-        dddg as i8 - 8,
-        data.get(2..)?,
-    ))
-}
-
-pub fn encode_diffluma(drdg: i8, dg: i8, dbdg: i8, dst: &mut Vec<u8>) {
-    dst.push(0b1000_0000 | (dg + 32) as u8);
-    dst.push(((drdg + 8) << 4) as u8 | (dbdg + 8) as u8);
-}
 
 // convert a color into a number from 0..64
 pub fn color_hash(r: u8, g: u8, b: u8, a: u8) -> usize {
     (r as usize * 3 + g as usize * 5 + b as usize * 7 + a as usize * 11) % 64
 }
 
+#[inline]
 pub fn add_hash_and_last(
     r: u8,
     g: u8,
@@ -157,4 +75,134 @@ pub fn add_hash_and_last(
     let hash = color_hash(r, g, b, a);
     array[hash] = (r, g, b, a);
     *last = (r, g, b, a);
+}
+
+/// A decoded version of a qoi Part/Chunk
+/// (I had to rewrite to add this API)
+/// All values stored unbiased
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum Part {
+    RGBA(u8, u8, u8, u8),
+    RGB(u8, u8, u8),
+    Run(u8),
+    SmallDiff(i8, i8, i8),
+    /// drdg db dbdg
+    LumaDiff(i8, i8, i8),
+    Idx(u8),
+}
+
+impl Part {
+    // TODO tests
+    pub fn encode(&self, dst: &mut Vec<u8>) {
+        match self {
+            Part::RGBA(r,g,b,a) => {
+                dst.push(0xff);
+                dst.push(*r);
+                dst.push(*g);
+                dst.push(*b);
+                dst.push(*a);
+            }
+            Part::RGB(r, g, b) => {
+                dst.push(0xfe);
+                dst.push(*r);
+                dst.push(*g);
+                dst.push(*b);
+            }
+            Part::SmallDiff(dr, dg, db) => {
+                println!("enc {} {} {} ", dr, dg, db);
+                dst.push(0b0100_0000 | (((dr + 2) as u8) << 4) | (((dg + 2) as u8) << 2) | (db + 2) as u8)
+            }
+            Part::LumaDiff(drdg, dg, dbdg) => {
+                dst.push(0b1000_0000 | (dg + 32) as u8);
+                dst.push((((drdg+8) as u8) << 4) | (dbdg+8) as u8)
+            }
+            Part::Run(len) => {
+                println!("run {}", len);
+                dst.push((len - 1) | 0b1100_0000)
+            }
+            Part::Idx(i) => {
+                dst.push(*i)
+            }
+        }
+    }
+    // TODO unit tests
+    pub fn decode<'a>(data: &'a [u8]) -> Option<(&'a [u8], Part)> {
+        let first = *data.get(0)?;
+        if first == 0b1111_1111 {
+            // RGBA
+            Some((
+                data.get(5..)?,
+                Part::RGBA(*data.get(1)?, *data.get(2)?, *data.get(3)?, *data.get(4)?)
+            ))
+        } else if first == 0b1111_1110 {
+            // RGB
+            Some((
+                data.get(4..)?,
+                Part::RGB(*data.get(1)?, *data.get(2)?, *data.get(3)?)
+            ))
+        } else if first & 0b1100_0000 == 0b00_00_0000 {
+            // Index
+            Some((
+                data.get(1..)?,
+                Part::Idx(first & 0b0011_1111)
+            ))
+        } else if first & 0b1100_0000 == 0b01_00_0000 {
+            // Diff
+            Some((
+                data.get(1..)?,
+                Part::SmallDiff(
+                    ((first >> 4) & 0b11) as i8 - 2,
+                    ((first >> 2) & 0b11) as i8 - 2, 
+                    ((first >> 0) & 0b11) as i8 - 2
+                )
+            ))
+        } else if first & 0b1100_0000 == 0b10_00_0000 {
+            // Luma
+            let a = data.get(0)?;
+            let b = data.get(1)?;
+            let dg = a & 0b11_1111;
+            let dr = (b & 0b1111_0000) >> 4;
+            let db = b & 0b0000_1111;
+            Some((
+                data.get(2..)?,
+                Part::LumaDiff(dr as i8 - 8, dg as i8 - 32, db as i8 - 8)
+            ))
+        } else if first & 0b1100_0000 == 0b11_00_0000 {
+            // Run
+            Some((
+                data.get(1..)?,
+                Part::Run((first & 0b11_1111) + 1)
+            ))
+        } else {
+            println!("invalid");
+            None
+        }
+    }
+}
+
+#[test]
+fn decoding() {
+    assert_eq!(Part::decode(&[0xff, 1,  2, 3, 4, 5]), Some((&[5][..], Part::RGBA(1,2,3,4))));
+    assert_eq!(Part::decode(&[0xfe, 1,  2, 3, 4]), Some((&[4][..], Part::RGB(1,2,3))));
+    assert_eq!(Part::decode(&[0b0000_1111, 4]), Some((&[4][..], Part::Idx(15))));
+    assert_eq!(Part::decode(&[0b0100_0110, 4]), Some((&[4][..], Part::SmallDiff(-2, -1, 0))));
+    assert_eq!(Part::decode(&[0b10_100000, 0b1000_0100, 4]), Some((&[4][..], Part::LumaDiff(0, 0, -4))));
+    assert_eq!(Part::decode(&[0b1100_1111, 4]), Some((&[4][..], Part::Run(16))));
+}
+
+#[test]
+fn encoding() {
+    fn test(part: Part) {
+        let mut v = vec![];
+        part.encode(&mut v);
+        v.push(0);
+        println!("{:?}", v);
+        assert_eq!(Part::decode(&v[..]), Some((&[0][..], part)));
+    }
+    test(Part::RGBA(0,1,2,2));
+    test(Part::RGB(0,1,2));
+    test(Part::LumaDiff(0,31,2));
+    test(Part::SmallDiff(-1,1,0));
+    test(Part::Idx(10));
+    test(Part::Run(10));
 }
