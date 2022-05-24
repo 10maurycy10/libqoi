@@ -3,7 +3,7 @@ use crate::shared::*;
 /// Decodes an QOI image to raw RGBA data row-major, returns metadata in a Header struct
 pub fn decode_qoi<'a>(data: &'a [u8]) -> Option<(Header, Vec<u8>, &'a [u8])> {
     let (head, mut data) = read_header(data)?;
-    let decoded_size = (head.hight * head.width * 4) as usize;
+    let decoded_size = (head.height * head.width * 4) as usize;
     let mut pxlbuffer = Vec::with_capacity(decoded_size);
     let mut colorhashes = [(0u8, 0u8, 0u8, 0u8); 64];
     let mut last_pxl = (0u8, 0u8, 0u8, 255u8);

@@ -50,14 +50,14 @@ fn can_use_luma(a: (u8, u8, u8, u8), b: (u8, u8, u8, u8)) -> bool {
 /// channel_count: 3 = RBG, 4 = RBGA
 pub fn encode_qoi(
     img_data: &[u8],
-    hight: usize,
+    height: usize,
     width: usize,
     channel_count: u8,
     color_space: u8,
 ) -> Option<Vec<u8>> {
     let mut buf = Vec::new();
     let header = Header {
-        hight: hight as u32,
+        height: height as u32,
         width: width as u32,
         channel_count: channel_count,
         color_space: color_space,

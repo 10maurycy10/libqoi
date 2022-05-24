@@ -21,7 +21,7 @@ mod tests {
             ]),
             Some((
                 Header {
-                    hight: 24,
+                    height: 24,
                     width: 15,
                     channel_count: 3,
                     color_space: 1

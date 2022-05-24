@@ -2,7 +2,7 @@
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub struct Header {
     /// big endian
-    pub hight: u32,
+    pub height: u32,
     /// big endian
     pub width: u32,
     /// 3 = RGB
@@ -20,7 +20,7 @@ pub fn encode_header(head: Header, dst: &mut Vec<u8>) {
     dst.push(b'i');
     dst.push(b'f');
     let w = head.width.to_be_bytes();
-    let h = head.hight.to_be_bytes();
+    let h = head.height.to_be_bytes();
     dst.push(w[0]);
     dst.push(w[1]);
     dst.push(w[2]);
@@ -39,7 +39,7 @@ pub fn encode_header(head: Header, dst: &mut Vec<u8>) {
 pub fn read_header<'a>(data: &'a [u8]) -> Option<(Header, &'a [u8])> {
     let magic = data.get(0..4)?;
     let width = data.get(4..8)?;
-    let hight = data.get(8..12)?;
+    let height = data.get(8..12)?;
     let channel_count = data.get(12)?;
     let color_space = data.get(13)?;
     if magic != b"qoif" {
@@ -47,7 +47,7 @@ pub fn read_header<'a>(data: &'a [u8]) -> Option<(Header, &'a [u8])> {
     } else {
         Some((
             Header {
-                hight: u32::from_be_bytes([hight[0], hight[1], hight[2], hight[3]]),
+                height: u32::from_be_bytes([height[0], height[1], height[2], height[3]]),
                 width: u32::from_be_bytes([width[0], width[1], width[2], width[3]]),
                 channel_count: *channel_count,
                 color_space: *color_space,
