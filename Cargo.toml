@@ -14,3 +14,11 @@ categories = ["multimedia::images", "compression"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+
+[dev-dependencies]
+criterion = "0.3"
+rand = "*"
+
+[[bench]]
+name = "random"
+harness = false
