@@ -26,6 +26,9 @@ pub fn decode_qoi<'a>(data: &'a [u8]) -> Option<(Header, Vec<u8>, &'a [u8])> {
                 add_hash_and_last(r, g, b, last_pxl.3, &mut colorhashes, &mut last_pxl);
             }
             Part::Run(runlen) => {
+                // Fixes edge case where first chunk is a run and the next one referecnes the hash
+                // table
+                add_hash_and_last(last_pxl.0, last_pxl.1, last_pxl.2, last_pxl.3, &mut colorhashes, &mut last_pxl);
                 for _ in 0..runlen {
                     pxlbuffer.push(last_pxl.0);
                     pxlbuffer.push(last_pxl.1);
