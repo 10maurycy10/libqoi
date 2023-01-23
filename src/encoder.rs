@@ -48,6 +48,7 @@ fn can_use_luma(a: (u8, u8, u8, u8), b: (u8, u8, u8, u8)) -> bool {
 /// img_data :  Row major RGBA image data
 /// hight, width: Image size
 /// channel_count: 3 = RBG, 4 = RBGA
+/// Panics if img_data.len() is not divisable by 4
 pub fn encode_qoi(
     img_data: &[u8],
     height: usize,
